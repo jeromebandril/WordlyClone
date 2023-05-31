@@ -1,15 +1,13 @@
 package com.example.wordlyclone;
 
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.core.content.ContextCompat;
 
-import android.graphics.Color;
+import android.graphics.drawable.StateListDrawable;
 import android.os.Bundle;
 import android.view.Gravity;
 import android.widget.Button;
 import android.widget.GridLayout;
 import android.widget.LinearLayout;
-import android.widget.TextClock;
 import android.widget.TextView;
 
 public class GameActivity extends AppCompatActivity {
@@ -20,7 +18,7 @@ public class GameActivity extends AppCompatActivity {
     private TextView[][] wordsGrid;
     private int currentAttemptCount;
     private int currentColumnCount;
-    private String word;
+    private char[] word;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -31,6 +29,12 @@ public class GameActivity extends AppCompatActivity {
         setGameStatus(0,0);
         initWordGrid();
         initCustomKeyboard();
+        extractRandomWord();
+    }
+
+    private void extractRandomWord () {
+        String randomWord = "gnome";
+        word = randomWord.toCharArray();
     }
 
     public void initWordGrid () {
@@ -89,7 +93,7 @@ public class GameActivity extends AppCompatActivity {
         layoutParams.columnSpec = GridLayout.spec(GridLayout.UNDEFINED, 1f);
         textView.setLayoutParams(layoutParams);
         //
-        textView.setBackgroundResource(R.drawable.letter_box_textview);
+        textView.setBackgroundResource(R.drawable.letter_state);
         textView.setGravity(Gravity.CENTER);
     }
 
@@ -115,9 +119,11 @@ public class GameActivity extends AppCompatActivity {
     private void mapKey(Button key) {
         key.setOnClickListener(view -> {
             String buttonText = key.getText().toString();
+            int maxLength = DEFAULT_WORD_LEN[levelMode];
             TextView tv;
 
             if (buttonText.equals("back")) {
+                //check if row is already empty then move index to -1 and  deletes the last letter inserted
                 if (currentColumnCount == 0) return;
                 currentColumnCount -= 1;
                 tv = wordsGrid[currentAttemptCount][currentColumnCount];
@@ -126,11 +132,18 @@ public class GameActivity extends AppCompatActivity {
             }
 
             if (buttonText.equals("enter")) {
-                getResult(buttonText);
+                //check if row is filled then get the guessed word as char sequence and send to getResult() for comparison
+                if (currentColumnCount == maxLength-1) return;
+                char[] word = new char[maxLength];
+                for (int i = 0; i < maxLength; i++) {
+                    word[i] = wordsGrid[currentAttemptCount][i].getText().toString().toCharArray()[0];
+                }
+                getResult(word);
                 return;
             }
 
-            if (currentColumnCount < DEFAULT_WORD_LEN[levelMode]) {
+            if (currentColumnCount < maxLength) {
+                //insert letter and move index to next textView (letter box)
                 tv = wordsGrid[currentAttemptCount][currentColumnCount];
                 tv.setText(buttonText);
                 currentColumnCount += 1;
@@ -139,7 +152,27 @@ public class GameActivity extends AppCompatActivity {
     }
 
 
-    private void getResult (String guessedWord) {
+    private void getResult (char[] guessedWord) {
+        for (int i = 0; i < guessedWord.length; i++) {
+            TextView tv = wordsGrid[currentAttemptCount][i];
+            boolean isPresent = false;
 
+            for (int j = 0; j < word.length; j++) {
+                if (guessedWord[i] == word[j]) {
+                    isPresent = true;
+                }
+            }
+
+            //is present but wrong position -> orange
+            if (isPresent && guessedWord[i] != word[i]) tv.setBackgroundResource(R.drawable.letter_wrong_position);
+            //is present and has correct position -> green
+            if (isPresent && guessedWord[i] == word[i]) tv.setBackgroundResource(R.drawable.letter_correct_position);
+            //not present -> dark gray
+            if (!isPresent) tv.setBackgroundResource(R.drawable.letter_not_present);
+        }
+
+        currentAttemptCount += 1;
+        currentColumnCount = 0;
     }
+
 }

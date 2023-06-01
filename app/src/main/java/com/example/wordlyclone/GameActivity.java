@@ -1,9 +1,9 @@
 /**
- * TODO: check if input is a valid word
  * TODO: show win and lose dialogs
  * TODO: make keyboard smoother, prettify its layout
+ * TODO: also color keyboard keys when the letter are already used
  * TODO: make grid word animations
- * TODO: fix uppercase and lowercase words comparisons
+ * TODO: implement restart game
  */
 
 package com.example.wordlyclone;
@@ -20,20 +20,22 @@ import android.widget.TextView;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 
 public class GameActivity extends AppCompatActivity {
     //CONSTANTS
     public final String SOURCE_FILE_NAME = "five_letters_word.txt";
-    public final int[] DEFAULT_WORD_LEN = {5,6,7,8};
+    public final int[] DEFAULT_WORD_LEN = {5,6,7,8}; //for future implementation of different word lengths
     public final int DEFAULT_ATTEMPTS_NUM = 6;
 
     //ATTRIBUTES
     private int levelMode;
     private TextView[][] wordsGrid;
-    private char[] word;
+    private String word;
     private int currentAttemptCount;
     private int currentColumnCount;
     private ArrayList<String> dictionary;
+    private ArrayList<Button> keyboard;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -61,7 +63,8 @@ public class GameActivity extends AppCompatActivity {
 
     private void extractRandomWord () {
         int rand = (int) (Math.random() * dictionary.size());
-        word = dictionary.get(rand).toCharArray();
+        word = dictionary.get(rand);
+        Log.d("extractedword",word);
     }
 
     private void initWordGrid () {
@@ -102,7 +105,8 @@ public class GameActivity extends AppCompatActivity {
         for (int i = 0; i < letters.length; i++) {
             for (String letter : letters[i]) {
                 Button key = new Button(this);
-                customizeButton(key, letter.toUpperCase());
+                //keyboard.add(key);
+                customizeButton(key, letter);
                 mapKey(key);
                 keyboardLines[i].addView(key);
             }
@@ -114,6 +118,7 @@ public class GameActivity extends AppCompatActivity {
         textView.setTextSize(35);
         textView.setHeight(100);
         textView.setWidth(100);
+        textView.setAllCaps(true);
         // Set layout_gravity to fill
         textView.setLayoutParams(new GridLayout.LayoutParams(GridLayout.spec(GridLayout.UNDEFINED, 1f), GridLayout.spec(GridLayout.UNDEFINED, 1f)));
         // Set layout_columnWeight to 1
@@ -145,7 +150,7 @@ public class GameActivity extends AppCompatActivity {
             int maxLength = DEFAULT_WORD_LEN[levelMode];
             TextView tv;
 
-            if (buttonText.equalsIgnoreCase("back")) {
+            if (buttonText.equals("back")) {
                 //check if row is already empty then move index to -1 and  deletes the last letter inserted
                 if (currentColumnCount == 0) return;
                 currentColumnCount -= 1;
@@ -154,14 +159,18 @@ public class GameActivity extends AppCompatActivity {
                 return;
             }
 
-            if (buttonText.equalsIgnoreCase("enter")) {
-                //check if row is filled then get the guessed word as char sequence and send to getResult()
+            if (buttonText.equals("enter")) {
+                //check if row is filled then get the guessed word and send it to getResult()
                 if (currentColumnCount < maxLength) return;
-                char[] word = new char[maxLength];
+                StringBuilder word = new StringBuilder();
                 for (int i = 0; i < maxLength; i++) {
-                    word[i] = wordsGrid[currentAttemptCount][i].getText().toString().charAt(0);
+                    word.append(wordsGrid[currentAttemptCount][i].getText().toString());
                 }
-                getResult(word);
+                //check if word is valid and exists
+                if (!dictionary.contains(word.toString())) {
+                    return;
+                }
+                getResult(word.toString());
                 return;
             }
 
@@ -174,26 +183,23 @@ public class GameActivity extends AppCompatActivity {
         });
     }
 
-    private void getResult (char[] guessedWord) {
+    private void getResult (String guessedWord) {
         //temporary quick fix for case comparison between chars
-        word = new String(word).toUpperCase().toCharArray();
-
 
         //check and make color feedback
-        for (int i = 0; i < guessedWord.length; i++) {
+        for (int i = 0; i < guessedWord.length(); i++) {
             TextView tv = wordsGrid[currentAttemptCount][i];
             boolean isPresent = false;
 
-            for (int j = 0; j < word.length; j++) {
-                if (guessedWord[i] == word[j]) {
+            for (int j = 0; j < word.length(); j++) {
+                if (guessedWord.charAt(i) == word.charAt(j)) {
                     isPresent = true;
                 }
             }
-
             //is present but wrong position -> orange
-            if (isPresent && guessedWord[i] != word[i]) tv.setBackgroundResource(R.drawable.letter_wrong_position);
+            if (isPresent && guessedWord.charAt(i) != word.charAt(i)) tv.setBackgroundResource(R.drawable.letter_wrong_position);
             //is present and has correct position -> green
-            if (isPresent && guessedWord[i] == word[i]) tv.setBackgroundResource(R.drawable.letter_correct_position);
+            if (isPresent && guessedWord.charAt(i) == word.charAt(i)) tv.setBackgroundResource(R.drawable.letter_correct_position);
             //not present -> dark gray
             if (!isPresent) tv.setBackgroundResource(R.drawable.letter_not_present);
         }

@@ -28,12 +28,10 @@ public class Dictionary {
                 String line;
 
                 while ((line = br.readLine()) != null) {
-                    Log.d("test",line);
                     list.add(line);
                 }
                 br.close();
         } catch (IOException e) {
-            Log.d("what",e.toString());
             e.printStackTrace();
         }
         return list;

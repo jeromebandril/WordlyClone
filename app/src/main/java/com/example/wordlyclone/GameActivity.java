@@ -1,6 +1,5 @@
 /**
- * TODO: show win and lose dialogs
- * TODO: make keyboard smoother, prettify its layout
+ * TODO: fix win and lose dialogs
  * TODO: make grid word animations
  * TODO: implement restart game
  */
@@ -8,9 +7,9 @@
 package com.example.wordlyclone;
 import androidx.appcompat.app.AppCompatActivity;
 
-import android.app.AlertDialog;
-import android.content.DialogInterface;
+import android.annotation.SuppressLint;
 import android.content.res.AssetManager;
+import android.graphics.Typeface;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.Gravity;
@@ -18,6 +17,8 @@ import android.widget.Button;
 import android.widget.GridLayout;
 import android.widget.LinearLayout;
 import android.widget.TextView;
+import android.widget.Toast;
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Hashtable;
@@ -36,12 +37,18 @@ public class GameActivity extends AppCompatActivity {
     private int currentAttemptCount;
     private int currentColumnCount;
     private int levelMode;
+    private EndgameDialog dialog;
+    private Button btnStartgame;
 
-
+    @SuppressLint("MissingInflatedId")
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_game);
+
+        if (getSupportActionBar() != null) {
+            getSupportActionBar().hide();
+        }
 
         //game initialization
         //load words
@@ -61,24 +68,17 @@ public class GameActivity extends AppCompatActivity {
         //
         extractRandomWord();
 
-        //testing modal
-        AlertDialog.Builder builder = new AlertDialog.Builder(this);
-        builder.setTitle("Modal Title")
-                .setMessage("Modal Message")
-                .setPositiveButton("OK", new DialogInterface.OnClickListener() {
-                    public void onClick(DialogInterface dialog, int which) {
-                        // Handle OK button click
-                    }
-                })
-                .setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
-                    public void onClick(DialogInterface dialog, int which) {
-                        // Handle Cancel button click
-                    }
-                });
+        dialog = new EndgameDialog(this);
+        //dialog.show();
 
-        AlertDialog dialog = builder.create();
-        dialog.show();
+        btnStartgame = findViewById(R.id.btn_startGame);
+        btnStartgame.setOnClickListener(view -> {
+            restartGame();
+        });
+    }
 
+    private void restartGame () {
+        extractRandomWord();
     }
 
     private void extractRandomWord () {
@@ -137,32 +137,45 @@ public class GameActivity extends AppCompatActivity {
     }
 
     private void customizeTextview(TextView textView) {
+        //options
+        int textSize = 35;
+        int height = 100;
+        int width = 100;
+
+        //text settings
         textView.setText("");
-        textView.setTextSize(35);
-        textView.setHeight(100);
-        textView.setWidth(100);
+        textView.setTextSize(textSize);
+        textView.setTypeface(null,Typeface.BOLD);
+        textView.setHeight(height);
+        textView.setWidth(width);
         textView.setAllCaps(true);
-        // Set layout_gravity to fill
+
+        //set layout params
         textView.setLayoutParams(new GridLayout.LayoutParams(GridLayout.spec(GridLayout.UNDEFINED, 1f), GridLayout.spec(GridLayout.UNDEFINED, 1f)));
         // Set layout_columnWeight to 1
         GridLayout.LayoutParams layoutParams = (GridLayout.LayoutParams) textView.getLayoutParams();
         layoutParams.columnSpec = GridLayout.spec(GridLayout.UNDEFINED, 1f);
         textView.setLayoutParams(layoutParams);
-        //
+
+        //textview settings
         textView.setBackgroundResource(R.drawable.letter_state);
         textView.setGravity(Gravity.CENTER);
     }
 
     private void customizeButton(Button button, String text) {
-        button.setText(text);
-        button.setHeight(100);
-        button.setWidth(100);
-        // Set layout_weight to 1
-        LinearLayout.LayoutParams layoutParams = new LinearLayout.LayoutParams(0,100);
-        layoutParams.weight = 1;
-        layoutParams.rightMargin = 10;
+        //options
+        int width = 100;
+        int height = 125;
+        int margin = 10;
+
+        //set layout params
+        if (text.length()>1) width = 125;
+        LinearLayout.LayoutParams layoutParams = new LinearLayout.LayoutParams(width, height);
+        layoutParams.rightMargin = margin;
         button.setLayoutParams(layoutParams);
 
+        //button settings
+        button.setText(text);
         button.setBackgroundResource(R.drawable.key_button);
         button.setGravity(Gravity.CENTER);
     }
@@ -191,6 +204,9 @@ public class GameActivity extends AppCompatActivity {
                 }
                 //check if word is valid and exists
                 if (!dictionary.contains(word.toString())) {
+                    Toast toast = Toast.makeText(this,"Not a valid word", Toast.LENGTH_SHORT);
+                    toast.setGravity(Gravity.CENTER,0,0);
+                    toast.show();
                     return;
                 }
                 getResult(word.toString());
@@ -239,7 +255,7 @@ public class GameActivity extends AppCompatActivity {
         }
 
         if (guessedWord.toString().equals(word.toString())) {
-            //TODO: show dialog for game won
+            dialog.showWin();
             return;
         }
 
@@ -247,7 +263,7 @@ public class GameActivity extends AppCompatActivity {
             currentAttemptCount += 1;
             currentColumnCount = 0;
         } else {
-            //TODO: show dialog for game lost
+            dialog.showLost();
         }
     }
 

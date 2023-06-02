@@ -1,7 +1,6 @@
 /**
  * TODO: show win and lose dialogs
  * TODO: make keyboard smoother, prettify its layout
- * TODO: also color keyboard keys when the letter are already used
  * TODO: make grid word animations
  * TODO: implement restart game
  */
@@ -9,6 +8,8 @@
 package com.example.wordlyclone;
 import androidx.appcompat.app.AppCompatActivity;
 
+import android.app.AlertDialog;
+import android.content.DialogInterface;
 import android.content.res.AssetManager;
 import android.os.Bundle;
 import android.util.Log;
@@ -17,10 +18,9 @@ import android.widget.Button;
 import android.widget.GridLayout;
 import android.widget.LinearLayout;
 import android.widget.TextView;
-
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
+import java.util.Hashtable;
 
 public class GameActivity extends AppCompatActivity {
     //CONSTANTS
@@ -29,13 +29,14 @@ public class GameActivity extends AppCompatActivity {
     public final int DEFAULT_ATTEMPTS_NUM = 6;
 
     //ATTRIBUTES
-    private int levelMode;
     private TextView[][] wordsGrid;
+    private Hashtable<String,Button> keyboard;
+    private ArrayList<String> dictionary;
     private String word;
     private int currentAttemptCount;
     private int currentColumnCount;
-    private ArrayList<String> dictionary;
-    private ArrayList<Button> keyboard;
+    private int levelMode;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -59,6 +60,25 @@ public class GameActivity extends AppCompatActivity {
         initCustomKeyboard();
         //
         extractRandomWord();
+
+        //testing modal
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle("Modal Title")
+                .setMessage("Modal Message")
+                .setPositiveButton("OK", new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface dialog, int which) {
+                        // Handle OK button click
+                    }
+                })
+                .setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface dialog, int which) {
+                        // Handle Cancel button click
+                    }
+                });
+
+        AlertDialog dialog = builder.create();
+        dialog.show();
+
     }
 
     private void extractRandomWord () {
@@ -90,6 +110,9 @@ public class GameActivity extends AppCompatActivity {
     }
 
     private void initCustomKeyboard () {
+
+        keyboard = new Hashtable<>();
+
         String[][] letters = {
                 {"q", "w", "e", "r", "t", "y", "u", "i", "o", "p"},
                 {"a", "s", "d", "f", "g", "h", "j", "k", "l"},
@@ -105,9 +128,9 @@ public class GameActivity extends AppCompatActivity {
         for (int i = 0; i < letters.length; i++) {
             for (String letter : letters[i]) {
                 Button key = new Button(this);
-                //keyboard.add(key);
                 customizeButton(key, letter);
                 mapKey(key);
+                keyboard.put(letter,key);
                 keyboardLines[i].addView(key);
             }
         }
@@ -132,8 +155,8 @@ public class GameActivity extends AppCompatActivity {
 
     private void customizeButton(Button button, String text) {
         button.setText(text);
-        button.setHeight(500);
-
+        button.setHeight(100);
+        button.setWidth(100);
         // Set layout_weight to 1
         LinearLayout.LayoutParams layoutParams = new LinearLayout.LayoutParams(0,100);
         layoutParams.weight = 1;
@@ -184,8 +207,6 @@ public class GameActivity extends AppCompatActivity {
     }
 
     private void getResult (String guessedWord) {
-        //temporary quick fix for case comparison between chars
-
         //check and make color feedback
         for (int i = 0; i < guessedWord.length(); i++) {
             TextView tv = wordsGrid[currentAttemptCount][i];
@@ -196,12 +217,25 @@ public class GameActivity extends AppCompatActivity {
                     isPresent = true;
                 }
             }
+
+            //get corresponding key button
+            Button key = keyboard.get(Character.toString(guessedWord.charAt(i)));
+
             //is present but wrong position -> orange
-            if (isPresent && guessedWord.charAt(i) != word.charAt(i)) tv.setBackgroundResource(R.drawable.letter_wrong_position);
+            if (isPresent && guessedWord.charAt(i) != word.charAt(i)) {
+                tv.setBackgroundResource(R.drawable.letter_wrong_position);
+                key.setBackgroundResource(R.color.orange);
+            }
             //is present and has correct position -> green
-            if (isPresent && guessedWord.charAt(i) == word.charAt(i)) tv.setBackgroundResource(R.drawable.letter_correct_position);
+            if (isPresent && guessedWord.charAt(i) == word.charAt(i)) {
+                tv.setBackgroundResource(R.drawable.letter_correct_position);
+                key.setBackgroundResource(R.color.green);
+            }
             //not present -> dark gray
-            if (!isPresent) tv.setBackgroundResource(R.drawable.letter_not_present);
+            if (!isPresent) {
+                tv.setBackgroundResource(R.drawable.letter_not_present);
+                key.setBackgroundResource(R.color.dark_gray);
+            }
         }
 
         if (guessedWord.toString().equals(word.toString())) {

@@ -2,17 +2,22 @@
  * TODO: fix win and lose dialogs
  * TODO: make grid word animations
  * TODO: implement restart game
+ * TODO: add sounds effects
+ * TODO: disable rotation
+ * TODO: fix keyboard coloring: make oneway updates black -> orange -> green
  */
 
 package com.example.wordlyclone;
 import androidx.appcompat.app.AppCompatActivity;
 
 import android.annotation.SuppressLint;
+import android.app.Dialog;
 import android.content.res.AssetManager;
 import android.graphics.Typeface;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.Gravity;
+import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.GridLayout;
 import android.widget.LinearLayout;
@@ -25,6 +30,8 @@ import java.util.Hashtable;
 
 public class GameActivity extends AppCompatActivity {
     //CONSTANTS
+    public final String DEFAULT_WIN_MESSAGE = "you won!";
+    public final String DEFAULT_LOSE_MESSAGE = "try again!";
     public final String SOURCE_FILE_NAME = "five_letters_word.txt";
     public final int[] DEFAULT_WORD_LEN = {5,6,7,8}; //for future implementation of different word lengths
     public final int DEFAULT_ATTEMPTS_NUM = 6;
@@ -37,12 +44,14 @@ public class GameActivity extends AppCompatActivity {
     private int currentAttemptCount;
     private int currentColumnCount;
     private int levelMode;
-    private EndgameDialog dialog;
+    private Dialog endgameDialog;
     private Button btnStartgame;
+    boolean isGameLost;
 
     @SuppressLint("MissingInflatedId")
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        // activity settings
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_game);
 
@@ -51,25 +60,23 @@ public class GameActivity extends AppCompatActivity {
         }
 
         //game initialization
-        //load words
+        //load words list in a variable
         AssetManager am = this.getAssets();
         try {
             dictionary = Dictionary.readerToList(am.open(SOURCE_FILE_NAME));
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
-        //init states
+        //init
         currentAttemptCount = 0;
         currentColumnCount = 0;
         levelMode = 0;
-        //make layout
-        initWordGrid();
-        initCustomKeyboard();
-        //
+        //make layouts
+        makeGridWords();
+        makeCustomKeyboard();
+        makeEndgameDialog();
+        //choose random word
         extractRandomWord();
-
-        dialog = new EndgameDialog(this);
-        //dialog.show();
 
         btnStartgame = findViewById(R.id.btn_startGame);
         btnStartgame.setOnClickListener(view -> {
@@ -87,7 +94,7 @@ public class GameActivity extends AppCompatActivity {
         Log.d("extractedword",word);
     }
 
-    private void initWordGrid () {
+    private void makeGridWords() {
         int columns = DEFAULT_WORD_LEN[levelMode];
         int rows = DEFAULT_ATTEMPTS_NUM;
         GridLayout gridLayout = findViewById(R.id.grid_words);
@@ -109,7 +116,7 @@ public class GameActivity extends AppCompatActivity {
         }
     }
 
-    private void initCustomKeyboard () {
+    private void makeCustomKeyboard() {
 
         keyboard = new Hashtable<>();
 
@@ -134,6 +141,26 @@ public class GameActivity extends AppCompatActivity {
                 keyboardLines[i].addView(key);
             }
         }
+    }
+
+    private void makeEndgameDialog () {
+        endgameDialog = new Dialog(this) {
+            @Override
+            public void show() {
+                TextView textview = findViewById(R.id.dialog_message);
+                Button btnStartgame = findViewById(R.id.btn_newGame);
+                textview.setText(isGameLost ? DEFAULT_LOSE_MESSAGE : DEFAULT_WIN_MESSAGE);
+                btnStartgame.setOnClickListener(view -> {
+                    restartGame();
+                });
+                super.show();
+            }
+        };
+
+        //customization
+        endgameDialog.setContentView(R.layout.custom_dialog);
+        endgameDialog.getWindow().setBackgroundDrawableResource(R.drawable.custom_dialog_background);
+        endgameDialog.getWindow().setLayout(700, 500); //height = ViewGroup.LayoutParams.WRAP_CONTENT
     }
 
     private void customizeTextview(TextView textView) {
@@ -237,6 +264,11 @@ public class GameActivity extends AppCompatActivity {
             //get corresponding key button
             Button key = keyboard.get(Character.toString(guessedWord.charAt(i)));
 
+            //not present -> dark gray
+            if (!isPresent) {
+                tv.setBackgroundResource(R.drawable.letter_not_present);
+                key.setBackgroundResource(R.color.dark_gray);
+            }
             //is present but wrong position -> orange
             if (isPresent && guessedWord.charAt(i) != word.charAt(i)) {
                 tv.setBackgroundResource(R.drawable.letter_wrong_position);
@@ -247,24 +279,20 @@ public class GameActivity extends AppCompatActivity {
                 tv.setBackgroundResource(R.drawable.letter_correct_position);
                 key.setBackgroundResource(R.color.green);
             }
-            //not present -> dark gray
-            if (!isPresent) {
-                tv.setBackgroundResource(R.drawable.letter_not_present);
-                key.setBackgroundResource(R.color.dark_gray);
-            }
+
         }
 
-        if (guessedWord.toString().equals(word.toString())) {
-            dialog.showWin();
-            return;
-        }
+        if (guessedWord.equals(word)) {
+            isGameLost = false;
+            endgameDialog.show();
 
-        if (currentAttemptCount < DEFAULT_ATTEMPTS_NUM-1) {
+        } else if (currentAttemptCount < DEFAULT_ATTEMPTS_NUM-1) {
             currentAttemptCount += 1;
             currentColumnCount = 0;
+
         } else {
-            dialog.showLost();
+            isGameLost = true;
+            endgameDialog.show();
         }
     }
-
 }

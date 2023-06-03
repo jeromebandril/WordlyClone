@@ -3,7 +3,6 @@
  * TODO: make grid word animations
  * TODO: implement restart game
  * TODO: add sounds effects
- * TODO: disable rotation
  * TODO: fix keyboard coloring: make oneway updates black -> orange -> green
  */
 
@@ -26,6 +25,7 @@ import android.widget.Toast;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Enumeration;
 import java.util.Hashtable;
 
 public class GameActivity extends AppCompatActivity {
@@ -80,11 +80,29 @@ public class GameActivity extends AppCompatActivity {
 
         btnStartgame = findViewById(R.id.btn_startGame);
         btnStartgame.setOnClickListener(view -> {
-            restartGame();
+            isGameLost = true;
+            endgameDialog.show();
         });
     }
 
     private void restartGame () {
+        //reset everything
+        for (TextView[] row: wordsGrid) {
+            for (TextView letter: row) {
+                letter.setText("");
+                letter.setBackgroundResource(R.drawable.letter_empty);
+            }
+        }
+
+        Enumeration<String> e = keyboard.keys();
+        while (e.hasMoreElements()) {
+            keyboard.get(e.nextElement()).setBackgroundResource(R.color.light_gray);
+        }
+
+        //reset offset
+        currentAttemptCount = 0;
+        currentColumnCount = 0;
+
         extractRandomWord();
     }
 
@@ -147,20 +165,23 @@ public class GameActivity extends AppCompatActivity {
         endgameDialog = new Dialog(this) {
             @Override
             public void show() {
-                TextView textview = findViewById(R.id.dialog_message);
+                TextView messageTextview = findViewById(R.id.dialog_message);
+                TextView title = findViewById(R.id.dialog_title);
                 Button btnStartgame = findViewById(R.id.btn_newGame);
-                textview.setText(isGameLost ? DEFAULT_LOSE_MESSAGE : DEFAULT_WIN_MESSAGE);
+                title.setText(isGameLost ? DEFAULT_LOSE_MESSAGE : DEFAULT_WIN_MESSAGE);
+                messageTextview.setText("the word was: " + word);
                 btnStartgame.setOnClickListener(view -> {
                     restartGame();
+                    this.dismiss();
                 });
                 super.show();
             }
         };
 
-        //customization
+        //customization;
         endgameDialog.setContentView(R.layout.custom_dialog);
         endgameDialog.getWindow().setBackgroundDrawableResource(R.drawable.custom_dialog_background);
-        endgameDialog.getWindow().setLayout(700, 500); //height = ViewGroup.LayoutParams.WRAP_CONTENT
+        endgameDialog.getWindow().setLayout(700, ViewGroup.LayoutParams.WRAP_CONTENT); //height =
     }
 
     private void customizeTextview(TextView textView) {

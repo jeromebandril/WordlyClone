@@ -10,4 +10,6 @@
     <color name="green">#4CBB17</color>
     <color name="orange">#FFBF00</color>
     <color name="dark_gray">#010203</color>
+    <color name="light_gray">#808080</color>
+
 </resources>

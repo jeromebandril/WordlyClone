@@ -1,7 +1,5 @@
 /**
- * TODO: fix win and lose dialogs
  * TODO: make grid word animations
- * TODO: implement restart game
  * TODO: add sounds effects
  * TODO: fix keyboard coloring: make oneway updates black -> orange -> green
  */
